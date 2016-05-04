@@ -24,7 +24,6 @@ app.post('/search', function(req, res) {
 		.filter(function(element){
 			return element.indexOf('(') === -1
 		})
-		//console.log('S',synonyms)
 		var queries = [word].concat(synonyms)
 		var resp = crawl(queries)
 
@@ -44,7 +43,6 @@ app.use(express.static(__dirname + '/public'))
 
 
 function crawl(queries) {
-	//console.log('in crawl')
 	var limit = 140
 	var query 
 	var pos = 0
@@ -58,20 +56,19 @@ function crawl(queries) {
 		var $ = cheerio.load(data);
 		var text
 		var passed = false
+		var text = $('p').text().replace(/\s\s+/g, ' ')
 
-		if(file === 'w00091.html'){
-			console.log(queries)
-		}
+		searchText = text
 		outer:
 		for(var g = 0; g < queries.length; g++){  //check every query until one in found in the current file
-			var text = $('p').text();
-			text = text.replace(/\s\s+/g, ' ')
 			query = queries[g]		
-			while(text.indexOf(query) > -1){	//check entire file for current querry
-				pos = text.indexOf(query)
+			while(searchText.indexOf(query) > -1){	//check entire file for current querry
+				pos = searchText.indexOf(query) 
 				
 				//query is matched somewhere in the file
 				if (pos >= 0 ) { 	
+					pos += text.length-searchText.length
+					
 					var charBefore = text.charAt(pos-1)
 					
 					//query doesn't have a prefix
@@ -81,16 +78,18 @@ function crawl(queries) {
 						//query dosen't have a suffix
 						if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  
 							passed = true
+					
 							break outer
 						}
 					}
 				} 
-				text = text.substring(pos+query.length)
+				searchText = searchText.substring(pos+query.length)
 			}
 		}	
 		if (passed) {
 			sentenceBegining = 0
 			sentenceEnd = pos + limit
+			
 			var currentChar = 0
 			
 			for(var i = pos - 1; i >= 0; i--){
@@ -114,7 +113,10 @@ function crawl(queries) {
 			} else {
 				//more characters before query than after
 				if(pos > sentenceEnd - pos + query.length){  
-					sentence = text.substring(sentenceBegining, sentenceBegining + limit)
+					sentence = text.substring(sentenceBegining, pos+query.length)
+					while(sentence.length > limit){
+						sentence = sentence.substr(1)
+					}
 				}
 				//more characters after query than after
 				else if(pos < sentenceEnd - pos + query.length){
@@ -133,7 +135,7 @@ function crawl(queries) {
 				h('div', [
 					sentence.substring(0, sentencePos),
 					h('span', {class: 'query'}, query),
-					sentence.substring(sentencePos+query.length)
+					sentence.substring(sentencePos+query.length),
 				])
 			])
 
@@ -145,6 +147,6 @@ function crawl(queries) {
 }
 
 
-app.listen(8080, function() {
-  console.log('Server running at http://127.0.0.1:8080/');
-});
+app.listen(process.env.PORT || 5000, function() {
+  console.log('Server running on port 5000');
+})
