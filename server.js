@@ -14,26 +14,44 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.post('/search', function(req, res) {
 	var word = 'present'
 	word = req.body.word
+	var virtualNode
+	var html
 	request("http://thesaurus.altervista.org/service.php?word="+word+"&language=en_US&output=json&key=SS3IcLAnzS2CcXXDH6UC", function (err, resp, content){
 		var result = JSON.parse(content)
-		var synonyms = result.response.reduce(function(prev, current){
-			return prev.concat(current.list.synonyms.split('|'))
-		}, [])
-		.filter(function(element){
-			return element.indexOf('(') === -1
-		})
-		var queries = [word].concat(synonyms)
-		var resp = crawl(queries)
+		// request module failed
+		if(err){
+			console.log('err', err)		
+		}	
+		// synonym API doesn't have word requested
+		if(result.error){
+			virtualNode = h('div', result.error)
+			html = createElement(virtualNode).toString()
+			fs.createReadStream('public/index.html')
+				.pipe(hyperstream({
+					'#content': html
+				}))
+				.pipe(res)	
+		}
+		else{
+			var synonyms = result.response.reduce(function(prev, current){
+				return prev.concat(current.list.synonyms.split('|'))
+			}, [])
+				.filter(function(element){
+					return element.indexOf('(') === -1
+				})
+			var queries = [word].concat(synonyms)
+			var resp = crawl(queries)
 
-		var virtualNode = h('div', resp)
-		var html = createElement(virtualNode).toString()
-        fs.createReadStream('public/index.html')
-            .pipe(hyperstream({
-                '#content': html
-            }))
-            .pipe(res)	
-		})  
-});
+			virtualNode = h('div', resp)
+			html = createElement(virtualNode).toString()
+			fs.createReadStream('public/index.html')
+				.pipe(hyperstream({
+					'#content': html
+				}))
+				.pipe(res)	
+		}
+	})
+})
 
 app.use(express.static(__dirname + '/public'))
 
