@@ -26,7 +26,7 @@ app.post('/search', function(req, res) {
 		.filter(function(element){
 			return element.indexOf('(') === -1
 		})
-		console.log('S',synonyms)
+		//console.log('S',synonyms)
 		var queries = [word].concat(synonyms)
 		var resp = crawl(queries, res)
 
@@ -65,7 +65,19 @@ function crawl(queries, res) {
 			query = queries[g]		
 			//console.log('query',query)
 			pos = text.indexOf(query)
-			if (pos >= 0) { break } 
+			if (pos >= 0 ) { 	//query is matched somewhere in the file
+				console.log('found query')
+				var charBefore = text.charAt(pos-1)
+				if(charBefore === ' ' || charBefore === "'" || charBefore === '"' || charBefore === '=' || text.charAt(pos) === text.charAt(pos).toUpperCase()){  //query doesn't have a prefix
+					console.log('no prefix')
+					var charAfter = text.charAt(pos + query.length)	
+					if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  //query dosen't have a suffix
+						console.log('no suffix')
+						console.log('passed')
+						break 
+					}
+				}
+			} 
 		}	
 
 		sentenceBegining = 0
@@ -92,11 +104,11 @@ function crawl(queries, res) {
 		//console.log(sentence)
 		
 		//console.log('query', query)
-		console.log('sentence', sentence)
+		//console.log('sentence', sentence)
 		
-		console.log('before', sentence.substring(0, pos))
-		console.log('query', query)
-		console.log('after', sentence.substring(pos+query.length))
+		//console.log('before', sentence.substring(0, pos))
+		//console.log('query', query)
+		//console.log('after', sentence.substring(pos+query.length))
 		var sentencePos = sentence.indexOf(query)
 
 		var node = h('div', {class: 'item'}, [
@@ -114,7 +126,7 @@ function crawl(queries, res) {
 		
 	})
 	return results
-	console.log('results', results)
+	//console.log('results', results)
 }
 
 
