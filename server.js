@@ -12,11 +12,10 @@ var createElement = require('virtual-dom/create-element')
 app.use(bodyParser.urlencoded({ extended: true })); 
 
 app.post('/search', function(req, res) {
-	var word = 'present'
 	word = req.body.word
-	var virtualNode
-	var html
 	request("http://thesaurus.altervista.org/service.php?word="+word+"&language=en_US&output=json&key=SS3IcLAnzS2CcXXDH6UC", function (err, resp, content){
+		var virtualNode
+		var html
 		var result = JSON.parse(content)
 		// request module failed
 		if(err){
@@ -26,11 +25,6 @@ app.post('/search', function(req, res) {
 		if(result.error){
 			virtualNode = h('div', result.error)
 			html = createElement(virtualNode).toString()
-			fs.createReadStream('public/index.html')
-				.pipe(hyperstream({
-					'#content': html
-				}))
-				.pipe(res)	
 		}
 		else{
 			var synonyms = result.response.reduce(function(prev, current){
@@ -44,12 +38,12 @@ app.post('/search', function(req, res) {
 
 			virtualNode = h('div', resp)
 			html = createElement(virtualNode).toString()
-			fs.createReadStream('public/index.html')
-				.pipe(hyperstream({
-					'#content': html
-				}))
-				.pipe(res)	
 		}
+		fs.createReadStream('public/index.html')
+			.pipe(hyperstream({
+				'#content': html
+			}))
+			.pipe(res)	
 	})
 })
 
