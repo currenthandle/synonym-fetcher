@@ -28,7 +28,7 @@ app.post('/search', function(req, res) {
 		})
 		//console.log('S',synonyms)
 		var queries = [word].concat(synonyms)
-		var resp = crawl(queries, res)
+		var resp = crawl(queries)
 
 
 		var virtualNode = h('div', resp)
@@ -50,7 +50,7 @@ var pos = 0
 var sentenceBegining
 var sentenceEnd
 
-function crawl(queries, res) {
+function crawl(queries) {
 	console.log('in crawl')
 	var results = []
 	var files = fs.readdirSync('files')
@@ -59,6 +59,7 @@ function crawl(queries, res) {
 		var $ = cheerio.load(data);
 		var text = $('p').text();
 		text = text.replace(/\s\s+/g, ' ')
+		var passed = false
 
 		for(var g = 0; g < queries.length; g++){
 			//console.log('queries', queries)
@@ -74,55 +75,57 @@ function crawl(queries, res) {
 					if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  //query dosen't have a suffix
 						console.log('no suffix')
 						console.log('passed')
+						passed = true
 						break 
 					}
 				}
 			} 
 		}	
+		if (passed) {
+			sentenceBegining = 0
+			sentenceEnd = pos + 140
 
-		sentenceBegining = 0
-		sentenceEnd = pos + 140
-
-		for(var i = pos - 1; i >= 0; i--){
-			if(text.charAt(i) === '.'){
-				sentenceBegining = i + 2
-				break
+			for(var i = pos - 1; i >= 0; i--){
+				if(text.charAt(i) === '.'){
+					sentenceBegining = i + 2
+					break
+				}
 			}
-		}
-		for (var j = pos + query.length + 1; j < data.length; j++) {
-			if (text.charAt(j) === '.') {
-				sentenceEnd = j + 1
-				break
+			for (var j = pos + query.length + 1; j < data.length; j++) {
+				if (text.charAt(j) === '.') {
+					sentenceEnd = j + 1
+					break
+				}
 			}
-		}
-		var sentenceLength = sentenceEnd - sentenceBegining
-		if (sentenceLength <= limit){
-			sentence = text.substring(sentenceBegining, sentenceEnd)
-		} else {
-			sentence = text.substring(pos - limit / 2, pos + limit /2)
-		}
-		//console.log(sentence)
-		
-		//console.log('query', query)
-		//console.log('sentence', sentence)
-		
-		//console.log('before', sentence.substring(0, pos))
-		//console.log('query', query)
-		//console.log('after', sentence.substring(pos+query.length))
-		var sentencePos = sentence.indexOf(query)
+			var sentenceLength = sentenceEnd - sentenceBegining
+			if (sentenceLength <= limit){
+				sentence = text.substring(sentenceBegining, sentenceEnd)
+			} else {
+				sentence = text.substring(pos - limit / 2, pos + limit /2)
+			}
+			//console.log(sentence)
+			
+			//console.log('query', query)
+			//console.log('sentence', sentence)
+			
+			//console.log('before', sentence.substring(0, pos))
+			//console.log('query', query)
+			//console.log('after', sentence.substring(pos+query.length))
+			var sentencePos = sentence.indexOf(query)
 
-		var node = h('div', {class: 'item'}, [
-			h('div', {class: 'file-name'}, file),
-			h('div', [
-				sentence.substring(0, sentencePos),
-				h('span', {class: 'query'}, query),
-				sentence.substring(sentencePos+query.length)
+			var node = h('div', {class: 'item'}, [
+				h('div', {class: 'file-name'}, file),
+				h('div', [
+					sentence.substring(0, sentencePos),
+					h('span', {class: 'query'}, query),
+					sentence.substring(sentencePos+query.length)
+				])
 			])
-		])
 
-		sentence = sentence.replace(query, '<b>' + query + '</b>')
+			sentence = sentence.replace(query, '<b>' + query + '</b>')
 
-		results.push(node)
+			results.push(node)
+		}
 		
 	})
 	return results
