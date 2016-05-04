@@ -62,39 +62,35 @@ function crawl(queries) {
 		if(file === 'w00091.html'){
 			console.log(queries)
 		}
-		for(var g = 0; g < queries.length; g++){
+		outer:
+		for(var g = 0; g < queries.length; g++){  //check every query until one in found in the current file
 			var text = $('p').text();
 			text = text.replace(/\s\s+/g, ' ')
 			query = queries[g]		
-			
-			pos = text.indexOf(query)
-			if (pos >= 0 ) { 	//query is matched somewhere in the file
-				var charBefore = text.charAt(pos-1)
-				if(file === 'w00091.html'){
-					console.log('1', query)
-				}
-				if(charBefore === ' ' || charBefore === "'" || charBefore === '"' || charBefore === '=' || text.charAt(pos) === text.charAt(pos).toUpperCase()){  //query doesn't have a prefix
-					if(file === 'w00091.html'){
-						console.log('2', query)
-					}
-					var charAfter = text.charAt(pos + query.length)	
-					if(file === 'w00091.html'){
-						console.log(charAfter)
-					}
+			while(text.indexOf(query) > -1){	//check entire file for current querry
+				pos = text.indexOf(query)
+				
+				//query is matched somewhere in the file
+				if (pos >= 0 ) { 	
+					var charBefore = text.charAt(pos-1)
 					
-					if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  //query dosen't have a suffix
-						passed = true
-						if(file === 'w00091.html'){
-							console.log('3', query)
+					//query doesn't have a prefix
+					if(charBefore === ' ' || charBefore === "'" || charBefore === '"' || charBefore === '=' || text.charAt(pos) === text.charAt(pos).toUpperCase()){  
+						var charAfter = text.charAt(pos + query.length)	
+						
+						//query dosen't have a suffix
+						if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  
+							passed = true
+							break outer
 						}
-						break 
 					}
-				}
-			} 
+				} 
+				text = text.substring(pos+query.length)
+			}
 		}	
 		if (passed) {
 			sentenceBegining = 0
-			sentenceEnd = pos + 140
+			sentenceEnd = pos + limit
 			var currentChar = 0
 			
 			for(var i = pos - 1; i >= 0; i--){
@@ -112,47 +108,32 @@ function crawl(queries) {
 				}
 			}
 			var sentenceLength = sentenceEnd - sentenceBegining
+			// Sentence is sorter than limit
 			if (sentenceLength <= limit){
 				sentence = text.substring(sentenceBegining, sentenceEnd+1)
 			} else {
-				if(pos > sentenceEnd - pos + query.length){  //more characters before query than after
+				//more characters before query than after
+				if(pos > sentenceEnd - pos + query.length){  
 					sentence = text.substring(sentenceBegining, sentenceBegining + limit)
-					if(file === 'w00091.html'){
-						console.log('1')
-						console.log(query)
-						console.log(sentence)
-					}
 				}
+				//more characters after query than after
 				else if(pos < sentenceEnd - pos + query.length){
-					if(file === 'w00091.html'){
-						console.log('2')
-					}
 					sentence = text.substring(pos, sentenceEnd+1)
 				}
+				//equal characters before and after query
 				else {
-					if(file === 'w00091.html'){
-						console.log('3')
-					}
 					sentence = text.substring(pos - limit / 2, pos + limit /2)
 				}
 			}
 			var sentencePos = sentence.indexOf(query)
 
+			//generate virtual DOM nodes from query results			
 			var node = h('div', {class: 'item'}, [
 				h('div', {class: 'file-name'}, file),
 				h('div', [
 					sentence.substring(0, sentencePos),
 					h('span', {class: 'query'}, query),
-					sentence.substring(sentencePos+query.length),
-					h('br'),
-					sentence.length,
-					h('br'),
-					sentenceLength,
-					h('br'),
-					query,
-					h('br'),
-					sentence
-					
+					sentence.substring(sentencePos+query.length)
 				])
 			])
 
