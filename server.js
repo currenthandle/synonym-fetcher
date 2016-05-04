@@ -9,8 +9,6 @@ var h = require('virtual-dom/h')
 var createElement = require('virtual-dom/create-element')
 
 
-//Note that in version 4 of express, express.bodyParser() was
-//deprecated in favor of a separate 'body-parser' module.
 app.use(bodyParser.urlencoded({ extended: true })); 
 
 //app.use(express.bodyParser());
@@ -44,14 +42,15 @@ app.post('/search', function(req, res) {
 
 app.use(express.static(__dirname + '/public'))
 
-var limit = 140
-var query 
-var pos = 0
-var sentenceBegining
-var sentenceEnd
 
 function crawl(queries) {
-	console.log('in crawl')
+	//console.log('in crawl')
+	var limit = 140
+	var query 
+	var pos = 0
+	var sentence = ''
+	var sentenceBegining
+	var sentenceEnd
 	var results = []
 	var files = fs.readdirSync('files')
 	files.forEach(function(file){
@@ -67,14 +66,22 @@ function crawl(queries) {
 			//console.log('query',query)
 			pos = text.indexOf(query)
 			if (pos >= 0 ) { 	//query is matched somewhere in the file
-				console.log('found query')
+			//console.log('found query')
+				/*
+				if (file === 'w00091.html'){
+					console.log('query', query)
+					
+					console.log('charAfter', charAfter)
+					console.log('snippit', text.substring(pos - 5, pos + query.length +5))
+				}
+				*/
 				var charBefore = text.charAt(pos-1)
 				if(charBefore === ' ' || charBefore === "'" || charBefore === '"' || charBefore === '=' || text.charAt(pos) === text.charAt(pos).toUpperCase()){  //query doesn't have a prefix
-					console.log('no prefix')
+					//console.log('no prefix')
 					var charAfter = text.charAt(pos + query.length)	
 					if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  //query dosen't have a suffix
-						console.log('no suffix')
-						console.log('passed')
+						//console.log('no suffix')
+						//console.log('passed')
 						passed = true
 						break 
 					}
@@ -84,33 +91,40 @@ function crawl(queries) {
 		if (passed) {
 			sentenceBegining = 0
 			sentenceEnd = pos + 140
-
+			var currentChar = 0
+			
 			for(var i = pos - 1; i >= 0; i--){
-				if(text.charAt(i) === '.'){
+				currentChar = text.charAt(i)
+				if (currentChar === '.' || currentChar === '?' || currentChar ==='!') {
 					sentenceBegining = i + 2
 					break
 				}
 			}
-			for (var j = pos + query.length + 1; j < data.length; j++) {
-				if (text.charAt(j) === '.') {
-					sentenceEnd = j + 1
+			for (var j = pos + query.length ; j < text.length; j++) {
+				currentChar = text.charAt(j)
+				if (currentChar === '.' || currentChar === '?' || currentChar ==='!') {
+					sentenceEnd = j
 					break
 				}
 			}
 			var sentenceLength = sentenceEnd - sentenceBegining
 			if (sentenceLength <= limit){
-				sentence = text.substring(sentenceBegining, sentenceEnd)
+				sentence = text.substring(sentenceBegining, sentenceEnd+1)
 			} else {
-				sentence = text.substring(pos - limit / 2, pos + limit /2)
+				if(pos > sentenceEnd - pos + query.length){  //more characters before query than after
+					sentence = text.substring(sentenceBegining, sentenceBegining + limit)
+				}
+				else if(pos < sentenceEnd - pos + query.length){
+					sentence = text.substring(pos, sentenceEnd+1)
+				}
+				else {
+					sentence = text.substring(pos - limit / 2, pos + limit /2)
+				}
+				//console.log('sentence over', sentence)	
+				//console.log('length', sentence.length)	
+				//console.log('sentenceLength', sentenceLength)	
 			}
-			//console.log(sentence)
-			
-			//console.log('query', query)
 			//console.log('sentence', sentence)
-			
-			//console.log('before', sentence.substring(0, pos))
-			//console.log('query', query)
-			//console.log('after', sentence.substring(pos+query.length))
 			var sentencePos = sentence.indexOf(query)
 
 			var node = h('div', {class: 'item'}, [
@@ -118,11 +132,18 @@ function crawl(queries) {
 				h('div', [
 					sentence.substring(0, sentencePos),
 					h('span', {class: 'query'}, query),
-					sentence.substring(sentencePos+query.length)
+					sentence.substring(sentencePos+query.length),
+					h('br'),
+					sentence.length,
+					h('br'),
+					query,
+					h('br'),
+					sentence
+					
 				])
 			])
 
-			sentence = sentence.replace(query, '<b>' + query + '</b>')
+			//sentence = sentence.replace(query, '<b>' + query + '</b>')
 
 			results.push(node)
 		}
