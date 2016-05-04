@@ -56,33 +56,37 @@ function crawl(queries) {
 	files.forEach(function(file){
 		var data = fs.readFileSync('files/'+file)
 		var $ = cheerio.load(data);
-		var text = $('p').text();
-		text = text.replace(/\s\s+/g, ' ')
+		var text
 		var passed = false
 
+		if(file === 'w00091.html'){
+			console.log(queries)
+		}
 		for(var g = 0; g < queries.length; g++){
-			//console.log('queries', queries)
+			var text = $('p').text();
+			text = text.replace(/\s\s+/g, ' ')
 			query = queries[g]		
-			//console.log('query',query)
+			
 			pos = text.indexOf(query)
 			if (pos >= 0 ) { 	//query is matched somewhere in the file
-			//console.log('found query')
-				/*
-				if (file === 'w00091.html'){
-					console.log('query', query)
-					
-					console.log('charAfter', charAfter)
-					console.log('snippit', text.substring(pos - 5, pos + query.length +5))
-				}
-				*/
 				var charBefore = text.charAt(pos-1)
+				if(file === 'w00091.html'){
+					console.log('1', query)
+				}
 				if(charBefore === ' ' || charBefore === "'" || charBefore === '"' || charBefore === '=' || text.charAt(pos) === text.charAt(pos).toUpperCase()){  //query doesn't have a prefix
-					//console.log('no prefix')
+					if(file === 'w00091.html'){
+						console.log('2', query)
+					}
 					var charAfter = text.charAt(pos + query.length)	
+					if(file === 'w00091.html'){
+						console.log(charAfter)
+					}
+					
 					if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  //query dosen't have a suffix
-						//console.log('no suffix')
-						//console.log('passed')
 						passed = true
+						if(file === 'w00091.html'){
+							console.log('3', query)
+						}
 						break 
 					}
 				}
@@ -113,18 +117,25 @@ function crawl(queries) {
 			} else {
 				if(pos > sentenceEnd - pos + query.length){  //more characters before query than after
 					sentence = text.substring(sentenceBegining, sentenceBegining + limit)
+					if(file === 'w00091.html'){
+						console.log('1')
+						console.log(query)
+						console.log(sentence)
+					}
 				}
 				else if(pos < sentenceEnd - pos + query.length){
+					if(file === 'w00091.html'){
+						console.log('2')
+					}
 					sentence = text.substring(pos, sentenceEnd+1)
 				}
 				else {
+					if(file === 'w00091.html'){
+						console.log('3')
+					}
 					sentence = text.substring(pos - limit / 2, pos + limit /2)
 				}
-				//console.log('sentence over', sentence)	
-				//console.log('length', sentence.length)	
-				//console.log('sentenceLength', sentenceLength)	
 			}
-			//console.log('sentence', sentence)
 			var sentencePos = sentence.indexOf(query)
 
 			var node = h('div', {class: 'item'}, [
@@ -136,6 +147,8 @@ function crawl(queries) {
 					h('br'),
 					sentence.length,
 					h('br'),
+					sentenceLength,
+					h('br'),
 					query,
 					h('br'),
 					sentence
@@ -143,14 +156,11 @@ function crawl(queries) {
 				])
 			])
 
-			//sentence = sentence.replace(query, '<b>' + query + '</b>')
-
 			results.push(node)
 		}
 		
 	})
 	return results
-	//console.log('results', results)
 }
 
 
