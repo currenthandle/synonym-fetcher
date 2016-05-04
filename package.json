@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+		"css": "node-sass scss/ -o public/",
+    "css-w": "node-sass scss/ -w -o public/",
+    "go": "parallelshell 'npm run css-w' 'nodemon server.js'"
   },
   "author": "",
   "license": "ISC",
@@ -15,5 +18,10 @@
     "hyperstream": "^1.2.2",
     "request": "^2.72.0",
     "virtual-dom": "^2.1.1"
+  },
+  "devDependencies": {
+    "node-sass": "^3.7.0",
+    "nodemon": "^1.9.2",
+    "parallelshell": "^2.0.0"
   }
 }

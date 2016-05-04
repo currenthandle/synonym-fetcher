@@ -1,0 +1,14 @@
+body {
+  text-align: center;
+  background-color: #88BAD2; }
+
+.item {
+  border: .1rem solid #696962;
+  margin: 1rem 8% 1rem 8%;
+  padding: .5rem .7rem .5rem .7rem;
+  text-align: left; }
+  .item .file-name {
+    text-align: center; }
+  .item .query {
+    background-color: #FFFF00;
+    border-radius: .2rem; }

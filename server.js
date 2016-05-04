@@ -15,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 //app.use(express.bodyParser());
 
-app.post('/myaction', function(req, res) {
+app.post('/search', function(req, res) {
 	var word = 'present'
 	word = req.body.word
 	request("http://thesaurus.altervista.org/service.php?word="+word+"&language=en_US&output=json&key=SS3IcLAnzS2CcXXDH6UC", function (err, resp, content){
@@ -91,17 +91,21 @@ function crawl(queries, res) {
 		}
 		//console.log(sentence)
 		
-		console.log('query', query)
+		//console.log('query', query)
 		console.log('sentence', sentence)
+		
+		console.log('before', sentence.substring(0, pos))
+		console.log('query', query)
+		console.log('after', sentence.substring(pos+query.length))
+		var sentencePos = sentence.indexOf(query)
 
-		var node = h('div', [
-			h('div', file),
+		var node = h('div', {class: 'item'}, [
+			h('div', {class: 'file-name'}, file),
 			h('div', [
-				sentence.substring(0, query),
+				sentence.substring(0, sentencePos),
 				h('span', {class: 'query'}, query),
-				sentence.substring(query+query.length)
-			]),
-			h('br')
+				sentence.substring(sentencePos+query.length)
+			])
 		])
 
 		sentence = sentence.replace(query, '<b>' + query + '</b>')
