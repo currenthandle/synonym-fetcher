@@ -2,7 +2,7 @@ var fs = require('fs')
 var request = require('request')
 var express = require('express');
 var bodyParser = require('body-parser');
-var app     = express();
+var app = express();
 var cheerio = require('cheerio')
 var hyperstream = require('hyperstream')
 var h = require('virtual-dom/h')
@@ -10,8 +10,6 @@ var createElement = require('virtual-dom/create-element')
 
 
 app.use(bodyParser.urlencoded({ extended: true })); 
-
-//app.use(express.bodyParser());
 
 app.post('/search', function(req, res) {
 	var word = 'present'
@@ -27,7 +25,6 @@ app.post('/search', function(req, res) {
 		var queries = [word].concat(synonyms)
 		var resp = crawl(queries)
 
-
 		var virtualNode = h('div', resp)
 		var html = createElement(virtualNode).toString()
         fs.createReadStream('public/index.html')
@@ -36,7 +33,6 @@ app.post('/search', function(req, res) {
             }))
             .pipe(res)	
 		})  
-		//res.send('You sent the name "' + req.body.word+ '".');
 });
 
 app.use(express.static(__dirname + '/public'))
@@ -68,7 +64,6 @@ function crawl(queries) {
 				//query is matched somewhere in the file
 				if (pos >= 0 ) { 	
 					pos += text.length-searchText.length
-					
 					var charBefore = text.charAt(pos-1)
 					
 					//query doesn't have a prefix
