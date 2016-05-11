@@ -12,33 +12,32 @@ var createElement = require('virtual-dom/create-element')
 app.use(bodyParser.urlencoded({ extended: true })); 
 
 app.post('/search', function(req, res) {
-	word = req.body.word
-	request("http://thesaurus.altervista.org/service.php?word="+word+"&language=en_US&output=json&key=SS3IcLAnzS2CcXXDH6UC", function (err, resp, content){
-		var virtualNode
-		var html
+	
+	var word = req.body.word
+	var apiCall = "http://thesaurus.altervista.org/service.php?word="+word+"&language=en_US&output=json&key=SS3IcLAnzS2CcXXDH6UC"
+	request(apiCall, function (err, resp, content){
+		var virtualTree
 		var result = JSON.parse(content)
+		
 		// request module failed
-		if(err){
-			console.log('err', err)		
-		}	
+		if(err) console.log('err', err)		
+		
 		// synonym API doesn't have word requested
-		if(result.error){
-			virtualNode = h('div', result.error)
-			html = createElement(virtualNode).toString()
-		}
+		if(result.error) virtualTree = h('div', result.error)
+		
+		// Synonm API found requested word
 		else{
 			var synonyms = result.response.reduce(function(prev, current){
 				return prev.concat(current.list.synonyms.split('|'))
 			}, [])
-				.filter(function(element){
-					return element.indexOf('(') === -1
-				})
+				.filter(function(element){ return element.indexOf('(') === -1 })
+			
 			var queries = [word].concat(synonyms)
 			var resp = crawl(queries)
 
-			virtualNode = h('div', resp)
-			html = createElement(virtualNode).toString()
+			virtualTree = h('div', resp)
 		}
+		var html = createElement(virtualTree).toString()
 		fs.createReadStream('public/index.html')
 			.pipe(hyperstream({
 				'#content': html
@@ -47,6 +46,7 @@ app.post('/search', function(req, res) {
 	})
 })
 
+// Set /public for startic resources
 app.use(express.static(__dirname + '/public'))
 
 
@@ -61,16 +61,23 @@ function crawl(queries) {
 	var files = fs.readdirSync('files')
 	files.forEach(function(file){
 		var data = fs.readFileSync('files/'+file)
+		
+		// Use jQuery to parse DOM
 		var $ = cheerio.load(data);
-		var text
-		var passed = false
+		// Replace new line characters with ' '
 		var text = $('p').text().replace(/\s\s+/g, ' ')
+		
+		var passed = false
 
 		searchText = text
+		
+		//check every query (synonmy) until one is found in the current file	
 		outer:
-		for(var g = 0; g < queries.length; g++){  //check every query until one in found in the current file
+		for(var g = 0; g < queries.length; g++){  
 			query = queries[g]		
-			while(searchText.indexOf(query) > -1){	//check entire file for current querry
+			
+			//check entire file for current querry
+			while(searchText.indexOf(query) > -1){	
 				pos = searchText.indexOf(query) 
 				
 				//query is matched somewhere in the file
@@ -90,6 +97,7 @@ function crawl(queries) {
 						}
 					}
 				} 
+				// The rest of the file after removing the current querry match and everything before it
 				searchText = searchText.substring(pos+query.length)
 			}
 		}	
@@ -98,51 +106,59 @@ function crawl(queries) {
 			sentenceEnd = pos + limit
 			
 			var currentChar = 0
+			function isEndChar(currentChar){return currentChar === '.' || currentChar === '?' || currentChar ==='!'}
 			
+			// Find the end of the previous sentence
 			for(var i = pos - 1; i >= 0; i--){
-				currentChar = text.charAt(i)
-				if (currentChar === '.' || currentChar === '?' || currentChar ==='!') {
+				if (isEndChar(text.charAt(i))) {
 					sentenceBegining = i + 2
 					break
 				}
 			}
+			// Find the beging of the next sentence
 			for (var j = pos + query.length ; j < text.length; j++) {
-				currentChar = text.charAt(j)
-				if (currentChar === '.' || currentChar === '?' || currentChar ==='!') {
+				if (isEndChar(text.charAt(j))) {
 					sentenceEnd = j
 					break
 				}
 			}
 			var sentenceLength = sentenceEnd - sentenceBegining
-			// Sentence is sorter than limit
+			var charsBefore = pos - sentenceBegining
+			var charsAfter = sentenceEnd - pos + query.length
+			
+			// Sentence is sorter than display limit
 			if (sentenceLength <= limit){
 				sentence = text.substring(sentenceBegining, sentenceEnd+1)
-			} else {
-				//more characters before query than after
-				if(pos > sentenceEnd - pos + query.length){  
-					sentence = text.substring(sentenceBegining, pos+query.length)
+			} 
+			else {
+				if (charsBefore === charsAfter) {
+					sentence = text.substring(pos - limit / 2, pos + limit / 2)
+					while(sentence.length > limit){
+						sentence = sentence.substr(1, sentence.length - 1)
+					}
+				}
+				else if (charsBefore > charsAfter) {
+					sentence = text.substring(sentenceBegining, pos + query.length + 1)
 					while(sentence.length > limit){
 						sentence = sentence.substr(1)
 					}
 				}
-				//more characters after query than after
-				else if(pos < sentenceEnd - pos + query.length){
-					sentence = text.substring(pos, sentenceEnd+1)
-				}
-				//equal characters before and after query
-				else {
-					sentence = text.substring(pos - limit / 2, pos + limit /2)
+				else { 
+					sentence = text.substring(pos, sentenceEnd + 1); 
+					while(sentence.length > limit){
+						sentence = sentence.substr(0, sentence.length - 1)
+					}
 				}
 			}
-			var sentencePos = sentence.indexOf(query)
+			var queryPos = sentence.indexOf(query)
 
 			//generate virtual DOM nodes from query results			
 			var node = h('div', {class: 'item'}, [
 				h('div', {class: 'file-name'}, file),
 				h('div', [
-					sentence.substring(0, sentencePos),
+					sentence.substring(0, queryPos),
 					h('span', {class: 'query'}, query),
-					sentence.substring(sentencePos+query.length),
+					sentence.substring(queryPos+query.length),
 				])
 			])
 
@@ -152,7 +168,6 @@ function crawl(queries) {
 	})
 	return results
 }
-
 
 app.listen(process.env.PORT || 5000, function() {
   console.log('Server running on port 5000');

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-		"css": "node-sass scss/ -o public/",
+    "css": "node-sass scss/ -o public/",
     "css-w": "node-sass scss/ -w -o public/",
     "go": "parallelshell 'npm run css-w' 'nodemon server.js'"
   },
