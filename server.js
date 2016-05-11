@@ -20,28 +20,33 @@ app.post('/search', function(req, res) {
 		var result = JSON.parse(content)
 		
 		// request module failed
-		if(err) console.log('err', err)		
+		if(err) console.error('err', err)		
 		
 		// synonym API doesn't have word requested
 		if(result.error) virtualTree = h('div', result.error)
 		
 		// Synonm API found requested word
 		else{
+			// Reduce result object into a list of synonoms
 			var synonyms = result.response.reduce(function(prev, current){
 				return prev.concat(current.list.synonyms.split('|'))
 			}, [])
+				// Fiter out all non-true synonoms
 				.filter(function(element){ return element.indexOf('(') === -1 })
 			
 			var queries = [word].concat(synonyms)
-			var resp = crawl(queries)
+			var resp = crawl(queries, 'files')
 
 			virtualTree = h('div', resp)
 		}
 		var html = createElement(virtualTree).toString()
+		// Create readable stream with index.html
 		fs.createReadStream('public/index.html')
+			// Pipe html variable into #content div of index.html
 			.pipe(hyperstream({
 				'#content': html
 			}))
+			// Pipe new index.html into the response object
 			.pipe(res)	
 	})
 })
@@ -50,7 +55,8 @@ app.post('/search', function(req, res) {
 app.use(express.static(__dirname + '/public'))
 
 
-function crawl(queries) {
+// Search 
+function crawl(queries, directory) {
 	var limit = 140
 	var query 
 	var pos = 0
@@ -58,9 +64,9 @@ function crawl(queries) {
 	var sentenceBegining
 	var sentenceEnd
 	var results = []
-	var files = fs.readdirSync('files')
+	var files = fs.readdirSync(directory)
 	files.forEach(function(file){
-		var data = fs.readFileSync('files/'+file)
+		var data = fs.readFileSync(directory + '/' + file)
 		
 		// Use jQuery to parse DOM
 		var $ = cheerio.load(data);
@@ -72,7 +78,7 @@ function crawl(queries) {
 		searchText = text
 		
 		//check every query (synonmy) until one is found in the current file	
-		outer:
+		synonymIterator:
 		for(var g = 0; g < queries.length; g++){  
 			query = queries[g]		
 			
@@ -91,9 +97,11 @@ function crawl(queries) {
 						
 						//query dosen't have a suffix
 						if(charAfter === ',' || charAfter === '.' || charAfter === ' ' || charAfter === '"' || charAfter === "'" || charAfter === '-' ){  
+							// The query match found is actually an instance of the serach word in the file
 							passed = true
 					
-							break outer
+							// Word has been found no need to look furthe in the file or check any more synonoms
+							break synonymIterator
 						}
 					}
 				} 
@@ -158,8 +166,8 @@ function crawl(queries) {
 			}
 			var queryPos = sentence.indexOf(query)
 
-			//generate virtual DOM nodes from query results			
-			var node = h('div', {class: 'item'}, [
+			// Generate virtual DOM node for the query results			
+			var virtualNode = h('div', {class: 'item'}, [
 				h('div', {class: 'file-name'}, file),
 				h('div', [
 					sentence.substring(0, queryPos),
@@ -168,10 +176,11 @@ function crawl(queries) {
 				])
 			])
 
-			results.push(node)
+			// Add the virtual node to the list of results
+			results.push(virtualNode)
 		}
-		
 	})
+	// Return a list of virtual DOM nodes to the /search POST route
 	return results
 }
 
