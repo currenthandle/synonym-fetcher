@@ -109,6 +109,7 @@ function crawl(queries, directory) {
 				searchText = searchText.substring(pos+query.length)
 			}
 		}	
+		// The current query was found in the current file
 		if (passed) {
 			sentenceBegining = 0
 			sentenceEnd = pos + limit
