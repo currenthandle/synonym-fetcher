@@ -131,20 +131,26 @@ function crawl(queries) {
 				sentence = text.substring(sentenceBegining, sentenceEnd+1)
 			} 
 			else {
+				// Query is in middle of sentence
 				if (charsBefore === charsAfter) {
 					sentence = text.substring(pos - limit / 2, pos + limit / 2)
+					// If too long trim on both ends
 					while(sentence.length > limit){
 						sentence = sentence.substr(1, sentence.length - 1)
 					}
 				}
+				// More characters before query than after
 				else if (charsBefore > charsAfter) {
 					sentence = text.substring(sentenceBegining, pos + query.length + 1)
+					// If too long trim from begining 
 					while(sentence.length > limit){
 						sentence = sentence.substr(1)
 					}
 				}
+				// More characters after query than before
 				else { 
 					sentence = text.substring(pos, sentenceEnd + 1); 
+					// If too long trim from end
 					while(sentence.length > limit){
 						sentence = sentence.substr(0, sentence.length - 1)
 					}
